@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SMG Automotores | Concesionaria en San Miguel de Tucumán</title>
+<meta name="description" content="SMG Automotores: compra, venta, permutas, consignaciones y financiación de autos usados y 0km en Lavalle 2219, San Miguel de Tucumán.">
+<link rel="preconnect" href="https://api.fontshare.com">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="loader" id="loader"><img src="LOGO.png" alt="SMG Automotores"><i class="loader__bar"></i></div>
+
+<header class="header" id="top">
+  <div class="container header__in">
+    <a href="#top" class="brand"><img src="LOGO.png" alt="SMG Automotores"></a>
+    <nav class="nav" id="nav">
+      <a href="#nosotros">Nosotros</a>
+      <a href="#catalogo">Catálogo</a>
+      <a href="#" class="nav__0km" data-soon>0KM</a>
+      <a href="#financiacion">Financiación</a>
+      <a href="#reviews">Reseñas</a>
+      <a href="#faq">Preguntas</a>
+    </nav>
+    <div class="header__right">
+      <a class="ig" href="https://www.instagram.com/smg.automotores/" target="_blank" rel="noopener" aria-label="Instagram">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>
+      </a>
+      <a class="btn btn--red btn--sm header__cta" href="https://wa.me/5493815847982" target="_blank" rel="noopener">Contactanos</a>
+      <button class="burger" id="burger" aria-label="Menú"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero__bg"></div>
+  <div class="hero__overlay"></div>
+  <div class="container hero__content">
+    <span class="hero__pill"><i></i> Concesionaria en San Miguel de Tucumán</span>
+    <h1><span class="l1">ENCONTRÁ TU</span> <span class="l2">PRÓXIMO AUTO</span> <span class="l3">CON NOSOTROS</span></h1>
+    <p class="hero__sub">Usados seleccionados y 0km · Permutas · Financiación</p>
+    <div class="hero__btns">
+      <a href="#catalogo" class="btn btn--red">Ver catálogo</a>
+      <a href="https://wa.me/5493815847982" target="_blank" rel="noopener" class="btn btn--glass">Consultar</a>
+    </div>
+  </div>
+  <a href="#nosotros" class="scroll" aria-label="Bajar"><i></i></a>
+</section>
+
+<section class="strip">
+  <div class="container strip__grid">
+    <div><strong>2022</strong><span>Desde</span></div>
+    <div><strong>+100</strong><span>Recomendaciones</span></div>
+    <div><strong>0km y usados</strong><span>Seleccionados</span></div>
+    <div><strong>Lavalle 2219</strong><span>San Miguel de Tucumán</span></div>
+  </div>
+</section>
+
+<section class="about" id="nosotros">
+  <div class="container about__grid">
+    <div class="about__text">
+      <span class="eyebrow">Sobre Nosotros | SMG Automotores</span>
+      <h2>¿Quiénes Somos?<i class="line"></i></h2>
+      <p>Desde 2022, en SMG Automotores hacemos que subirte a tu próximo auto sea un proceso simple, transparente y a tu medida. Nos encontramos en Lavalle 2219, San Miguel de Tucumán, una ubicación estratégica pensada para brindarte la mayor comodidad y la atención personalizada que merecés.</p>
+      <p>Nos especializamos en la compra y venta de vehículos usados seleccionados y unidades 0km. Sabemos que cada cliente tiene una necesidad distinta, por lo que ofrecemos soluciones integrales:</p>
+      <ul class="checks">
+        <li>Permutas con la mejor cotización de tu usado.</li>
+        <li>Consignaciones seguras y de rápida gestión.</li>
+        <li>Financiaciones a medida, diseñadas para ajustarse a tu presupuesto.</li>
+      </ul>
+      <p>Nuestro mayor orgullo es la excelencia en el servicio y el respaldo de las cientos de recomendaciones de clientes que nos eligen día a día. Acercate a nuestro salón en Lavalle 2219 y viví la experiencia de hacer un buen negocio con total confianza.</p>
+    </div>
+    <div class="about__cards">
+      <div class="card-s"><b>Permutas</b><p>La mejor cotización de tu usado.</p></div>
+      <div class="card-s"><b>Consignaciones</b><p>Seguras y de rápida gestión.</p></div>
+      <div class="card-s"><b>Financiación</b><p>Cuotas a medida de tu presupuesto.</p></div>
+      <div class="card-s"><b>0km y Usados</b><p>Unidades seleccionadas con respaldo.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="catalog" id="catalogo">
+  <div class="container">
+    <div class="sec-head sec-head--row reveal">
+      <div>
+        <span class="eyebrow">Nuestro stock</span>
+        <h2>Catálogo<i class="line"></i></h2>
+      </div>
+      <button class="filter-btn" id="filterBtn" aria-expanded="false" aria-controls="filterPanel">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
+        Filtro
+        <em id="filterCount"></em>
+      </button>
+    </div>
+
+    <div class="filter-panel" id="filterPanel">
+      <div class="filter-panel__in">
+        <button class="chip is-active" data-filter="all">Todos</button>
+        <button class="chip" data-filter="sedan">Sedán</button>
+        <button class="chip" data-filter="hatchback">Hatchback</button>
+        <button class="chip" data-filter="suv">SUV</button>
+        <button class="chip" data-filter="pickup">Pick-up / 4x4</button>
+        <button class="chip" data-filter="utilitario">Utilitarios</button>
+      </div>
+    </div>
+
+    <div class="grid grid--cars" id="cars">
+      <article class="car reveal" data-cat="hatchback">
+        <div class="car__img">
+          <img src="CATALOGO/cat1.jpg" alt="Chevrolet Cruze 1.4 LT MT" loading="lazy">
+          <span class="tag">🔥 Destacado</span>
+          <span class="year">2018</span>
+        </div>
+        <div class="car__body">
+          <small class="car__type">Chevrolet · Hatchback</small>
+          <h3>CHEVROLET CRUZE 1.4 LT MT</h3>
+          <ul class="chips">
+            <li><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>2018</li>
+            <li><svg viewBox="0 0 24 24"><path d="M4 18a8 8 0 1116 0"/><path d="M12 18l4-6"/></svg>110.000 km</li>
+          </ul>
+          <a class="btn btn--red btn--block btn--wa" target="_blank" rel="noopener" href="https://wa.me/5493815847982?text=Hola%20SMG%20Automotores%2C%20quiero%20consultar%20por%20el%20Chevrolet%20Cruze%201.4%20LT%20MT">Consultar</a>
+        </div>
+      </article>
+
+      <article class="car reveal" data-cat="hatchback">
+        <div class="car__img">
+          <img src="CATALOGO/cat2.jpg" alt="Renault Sandero Stepway Privilege" loading="lazy">
+          <span class="tag">🔥 Destacado</span>
+          <span class="year">2019</span>
+        </div>
+        <div class="car__body">
+          <small class="car__type">Renault · Hatchback</small>
+          <h3>RENAULT SANDERO STEPWAY PRIVILEGE</h3>
+          <ul class="chips">
+            <li><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>2019</li>
+            <li><svg viewBox="0 0 24 24"><path d="M4 18a8 8 0 1116 0"/><path d="M12 18l4-6"/></svg>73.000 km</li>
+            <li><svg viewBox="0 0 24 24"><path d="M12 3c3 4 6 6.500 6 11a6 6 0 01-12 0c0-2 1-3.500 2-5 .5 1.500 1.500 2 2 2 0-3 0-5 2-8z"/></svg>GNC de 5ta</li>
+          </ul>
+          <a class="btn btn--red btn--block btn--wa" target="_blank" rel="noopener" href="https://wa.me/5493815847982?text=Hola%20SMG%20Automotores%2C%20quiero%20consultar%20por%20el%20Renault%20Sandero%20Stepway%20Privilege">Consultar</a>
+        </div>
+      </article>
+
+      <article class="car reveal" data-cat="sedan">
+        <div class="car__img">
+          <img src="CATALOGO/cat3.jpeg" alt="Volkswagen Vento DSG 2.0T" loading="lazy">
+          <span class="tag">Casi 0km</span>
+          <span class="year">2026</span>
+        </div>
+        <div class="car__body">
+          <small class="car__type">Volkswagen · Sedán</small>
+          <h3>VOLKSWAGEN VENTO DSG 2.0T</h3>
+          <ul class="chips">
+            <li><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>2026</li>
+            <li><svg viewBox="0 0 24 24"><path d="M4 18a8 8 0 1116 0"/><path d="M12 18l4-6"/></svg>600 km</li>
+          </ul>
+          <a class="btn btn--red btn--block btn--wa" target="_blank" rel="noopener" href="https://wa.me/5493815847982?text=Hola%20SMG%20Automotores%2C%20quiero%20consultar%20por%20el%20Volkswagen%20Vento%20DSG%202.0T">Consultar</a>
+        </div>
+      </article>
+    </div>
+    <div class="more"><button class="btn btn--red btn--more" id="moreBtn">Ver más</button></div>
+    <p class="empty" id="empty">No hay unidades en esta categoría por el momento. <a href="https://wa.me/5493815847982" target="_blank" rel="noopener">Consultanos por WhatsApp</a>.</p>
+  </div>
+</section>
+
+<section class="finance" id="financiacion">
+  <div class="container finance__grid">
+    <div class="finance__img"><img src="BANNER PRENDARIOS.jpg" alt="Prendarios.com - Financiamos usados y 0km" loading="lazy"></div>
+    <div class="finance__text">
+      <img class="finance__logo" src="LOGO PRENDARIOS.png" alt="Prendarios.com">
+      <span class="eyebrow eyebrow--green">Financiación a tu medida</span>
+      <h2>Financiá tu próximo vehículo en simples pasos<i class="line line--green"></i></h2>
+      <p>Trabajamos junto a Prendarios.com para ofrecerte las mejores líneas de créditos prendarios del mercado. Simulá tu préstamo online para unidades 0km o usadas y descubrí la cuota que mejor se adapta a tu bolsillo, con gestión rápida y respaldo bancario.</p>
+      <a class="btn btn--green" href="https://www.prendarios.com" target="_blank" rel="noopener">Consultar</a>
+    </div>
+  </div>
+</section>
+
+<section class="reviews" id="reviews">
+  <div class="container">
+    <div class="sec-head sec-head--center">
+      <span class="eyebrow">Opiniones en Google</span>
+      <h2>Lo que dicen nuestros clientes<i class="line"></i></h2>
+    </div>
+    <div class="grid grid--rev">
+      <blockquote class="rev"><div class="rev__top"><span class="av" style="background:#f06a0a">O</span><div><b>oscar vega gonzalez</b><small>hace 2 meses</small></div></div><div class="stars">★★★★★</div><p>Una calidad muy buena del vehículo adquirido a la empresa, con una atención realmente excelente, nos asesoraron con los mucha paciencia y estuvieron pendiente en cada detalle para q todo saliera de la mejor manera. Nos llevamos no solo un auto sino una gran experiencia. (Sin duda volveríamos a elegirlos y a recomendarlos) Simplemente gracias.</p></blockquote>
+      <blockquote class="rev"><div class="rev__top"><span class="av" style="background:#0f8a78">A</span><div><b>Alejandro David Martin Morales</b><small>hace 7 meses</small></div></div><div class="stars">★★★★★</div><p>Santiago, Adolfo, y su grupo un verdadero lujo!. Así da gusto hacer negocio!, muy serios y responsables. Gracias por la experiencia recibida!</p></blockquote>
+      <blockquote class="rev"><div class="rev__top"><span class="av" style="background:#c2185b">A</span><div><b>Alejandra Olmos</b><small>hace un año</small></div></div><div class="stars">★★★★★</div><p>Muy recomendable .. y confiable estoy muy satisfecha xq fueron de palabra .. muy amable el trato de los empleados .. !</p></blockquote>
+      <blockquote class="rev"><div class="rev__top"><span class="av" style="background:#f4511e">G</span><div><b>Gustavo Oteroo</b><small>hace 8 meses</small></div></div><div class="stars">★★★★★</div><p>Excelente atención. Muy buen asesoramiento, gestión y acompañamiento en el proceso de compra.</p></blockquote>
+      <blockquote class="rev"><div class="rev__top"><span class="av" style="background:#333">C</span><div><b>Cliente de Google</b><small>hace 10 meses</small></div></div><div class="stars">★★★★★</div><p>Impecable la atencion y seriedad. En mi caso fui parte vendedora. Supieron con mucha seriedad valorar mi vehículo y consiguieron el mejor precio posible. Continuamente me mantuvieron al tanto durante el proceso y fundamentalmente la eficiencia del Sr. Adolfo Lopez para los negocios, pudieron ubicar el vehículo en muy corto plazo. Les estoy muy agradecido, y son altamente recomendables a toda la comunidad.</p></blockquote>
+      <blockquote class="rev"><div class="rev__top"><span class="av" style="background:#5e35b1">D</span><div><b>Diego Matta</b><small>Local Guide · hace 7 meses</small></div></div><div class="stars">★★★★★</div><p>Excelente atención, personas profesionales y sobre todo de confianza que es lo más importante a la hora de comprar un vehículo.</p></blockquote>
+    </div>
+    <div class="map">
+      <iframe title="SMG Automotores en Google Maps" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps?q=SMG+Automotores+Lavalle+2219+San+Miguel+de+Tucum%C3%A1n&output=embed"></iframe>
+    </div>
+    <div class="center"><a class="btn btn--red" href="https://maps.app.goo.gl/8EAmbVWKZqyZtVh58" target="_blank" rel="noopener">Ver todas las reseñas en Google Maps</a></div>
+  </div>
+</section>
+
+<section class="faq" id="faq">
+  <div class="container faq__in">
+    <div class="sec-head sec-head--center">
+      <span class="eyebrow eyebrow--light">Resolvemos tus dudas</span>
+      <h2>Preguntas Frecuentes<i class="line"></i></h2>
+    </div>
+    <details class="qa" open><summary>¿Ofrecen financiación?</summary><p>Sí. Trabajamos con crédito prendario a través de Prendarios.com, que financia vehículos 0 km y usados con tasa fija o UVA. También podés entregar tu auto como parte de pago.</p></details>
+    <details class="qa"><summary>¿Puedo vender mi auto o moto en SMG AUTOMOTORES?</summary><p>¡Sí! Compramos autos y motos usados. Te tasamos el vehículo de forma profesional y transparente para que recibas el mejor precio del mercado.</p></details>
+    <details class="qa"><summary>¿Los vehículos poseen garantía?</summary><p>Sí. Todos los vehículos de nuestro catálogo son seleccionados con garantía de procedencia. Nos aseguramos de que cada unidad esté en óptimas condiciones antes de ofrecerla.</p></details>
+    <details class="qa"><summary>¿Cuáles son los horarios de atención?</summary><p>Atendemos de lunes a viernes de 9 a 13 y de 16 a 20, y los sábados de 10 a 13. También podés contactarnos por WhatsApp en cualquier momento.</p></details>
+    <details class="qa"><summary>¿Hacen parte del pago con mi vehículo?</summary><p>Sí. Aceptamos tu vehículo como parte de pago, sujeto a tasación previa. Consultanos el valor de tu auto o moto por WhatsApp y te respondemos a la brevedad.</p></details>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container footer__grid">
+    <div>
+      <img class="footer__logo" src="LOGO.png" alt="SMG Automotores">
+      <p>Compra y venta de vehículos usados seleccionados y 0km en San Miguel de Tucumán.</p>
+      <a class="ig ig--footer" href="https://www.instagram.com/smg.automotores/" target="_blank" rel="noopener" aria-label="Instagram">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>
+      </a>
+    </div>
+    <div>
+      <h4>Navegación</h4>
+      <a href="#nosotros">Nosotros</a><a href="#catalogo">Catálogo</a><a href="#" data-soon>0KM</a><a href="#financiacion">Financiación</a><a href="#reviews">Reseñas</a><a href="#faq">Preguntas frecuentes</a>
+    </div>
+    <div>
+      <h4>Horarios</h4>
+      <p>L a V: 9 a 13 - 16 a 20<br>SAB: 10 a 13</p>
+    </div>
+    <div>
+      <h4>Contacto</h4>
+      <p>Lavalle 2219<br>San Miguel de Tucumán</p>
+      <a href="https://wa.me/5493815847982" target="_blank" rel="noopener">WhatsApp +54 9 381 584-7982</a>
+    </div>
+  </div>
+  <div class="footer__copy"><div class="container">© 2026 SMG Automotores. Todos los derechos reservados.</div></div>
+</footer>
+
+<a class="wa-float" href="https://wa.me/5493815847982" target="_blank" rel="noopener" aria-label="Escribinos por WhatsApp">
+  <span class="wa-float__ring"></span>
+  <svg viewBox="0 0 32 32" width="28" height="28" fill="#fff"><path d="M16 3C9.4 3 4 8.3 4 14.9c0 2.3.7 4.5 1.9 6.3L4 29l8-2.1c1.7.9 3.9 1.4 4 1.4 6.6 0 12-5.3 12-11.9S22.600 3 16 3zm0 21.700c-1.900 0-3.700-.5-5.200-1.500l-.4-.2-4.700 1.200 1.300-4.600-.3-.5c-1-1.600-1.500-3.400-1.500-5.200C5.200 9.600 10 5.200 16 5.200s10.800 4.400 10.800 9.900S22 24.700 16 24.700zm5.900-7.400c-.3-.2-1.900-.9-2.200-1-.3-.1-.5-.2-.7.2-.2.300-.8 1-1 1.200-.2.200-.4.200-.7.100-.3-.2-1.400-.5-2.600-1.600-1-.9-1.600-1.900-1.800-2.200-.2-.3 0-.5.100-.7l.5-.6c.2-.2.200-.3.300-.5.100-.2.100-.4 0-.6-.1-.2-.7-1.700-1-2.300-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.100-.9.400-.3.300-1.200 1.100-1.200 2.800s1.200 3.200 1.400 3.500c.2.200 2.400 3.700 5.800 5.100 3.400 1.400 3.400.9 4 .9.6-.1 1.900-.8 2.200-1.500.3-.7.300-1.400.2-1.500-.1-.2-.3-.2-.6-.4z"/></svg>
+  <span class="wa-float__txt">Escribinos</span>
+</a>
+
+<div class="toast" id="toast">Sección 0KM · Próximamente</div>
+
+<script>
+  /* Loader */
+  const hideLoader=()=>document.getElementById('loader').classList.add('done');
+  window.addEventListener('load',()=>setTimeout(hideLoader,1300));
+  setTimeout(hideLoader,4000);
+
+  /* Menú móvil */
+  const b=document.getElementById('burger'),n=document.getElementById('nav');
+  b.addEventListener('click',()=>{n.classList.toggle('open');b.classList.toggle('on')});
+  n.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{n.classList.remove('open');b.classList.remove('on')}));
+
+  /* Header al hacer scroll */
+  const hd=document.querySelector('.header');
+  const onScroll=()=>hd.classList.toggle('scrolled',scrollY>30);
+  onScroll();addEventListener('scroll',onScroll,{passive:true});
+
+  /* 0KM (pendiente) */
+  const toast=document.getElementById('toast');let tt;
+  document.querySelectorAll('[data-soon]').forEach(a=>a.addEventListener('click',e=>{
+    e.preventDefault();toast.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>toast.classList.remove('show'),2200);
+  }));
+
+  /* Filtro de catálogo */
+  const fb=document.getElementById('filterBtn'),fp=document.getElementById('filterPanel'),fc=document.getElementById('filterCount');
+  fb.addEventListener('click',()=>{const o=fp.classList.toggle('open');fb.classList.toggle('on',o);fb.setAttribute('aria-expanded',o)});
+  const cars=[...document.querySelectorAll('#cars .car')],empty=document.getElementById('empty'),moreBtn=document.getElementById('moreBtn');
+  const STEP=6;let shown=STEP,curF='all';
+  function render(anim){
+    let v=0,m=0;
+    cars.forEach(car=>{
+      const match=curF==='all'||car.dataset.cat===curF;
+      let show=false;
+      if(match){m++;if(v<shown){show=true;v++}}
+      const was=!car.classList.contains('hide');
+      car.classList.toggle('hide',!show);
+      if(show&&(anim||!was)){car.classList.remove('in');void car.offsetWidth;car.classList.add('in')}
+    });
+    empty.classList.toggle('show',m===0);
+    return m>v;
+  }
+  /* Ver más: muestra las siguientes unidades del catálogo */
+  moreBtn.addEventListener('click',()=>{
+    if(render(false)){shown+=STEP;render(false)}
+    else{toast.textContent='Pronto sumaremos más unidades';toast.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>toast.classList.remove('show'),2200)}
+  });
+  fp.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{
+    fp.querySelectorAll('.chip').forEach(x=>x.classList.remove('is-active'));c.classList.add('is-active');
+    curF=c.dataset.filter;shown=STEP;render(true);
+    fc.textContent=curF==='all'?'':'1';fb.classList.toggle('has',curF!=='all');
+  }));
+  render(false);
+  /* Animaciones al hacer scroll */
+  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.12});
+  document.querySelectorAll('.about__text,.card-s,.finance__img,.finance__text,.rev,.qa,.map,.sec-head:not(.reveal)').forEach(e=>e.classList.add('reveal'));
+  document.querySelectorAll('.reveal').forEach((el,i)=>{el.style.transitionDelay=(i%3)*90+'ms';io.observe(el)});
+</script>
+</body>
+</html>
