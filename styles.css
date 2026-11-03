@@ -268,3 +268,26 @@ h2{font-size:clamp(1.8rem,3.4vw,2.6rem);margin-bottom:1.2rem}
 /* Prioridad final de la grilla del cat\u00e1logo */
 .grid.grid--cars{grid-template-columns:repeat(3,minmax(0,1fr))}
 @media(max-width:720px){.grid.grid--cars{grid-template-columns:repeat(2,minmax(0,1fr));gap:.7rem}}
+
+/* ===== Botones del banner ===== */
+.btn--hero{display:inline-flex;align-items:center;justify-content:center;gap:.6rem;min-height:56px;padding:0 2.2rem;border-radius:50px;white-space:nowrap}
+.btn--hero.btn--red{box-shadow:0 10px 28px rgba(222,3,13,.45)}
+.btn--glass.btn--wa::before{margin-right:0}
+.btn--arrow::after{content:"";width:1.1em;height:1.1em;background:#fff;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14M13 6l6 6-6 6'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14M13 6l6 6-6 6'/%3E%3C/svg%3E") center/contain no-repeat;transition:transform .25s}
+.btn--arrow:hover::after{transform:translateX(5px)}
+.btn--glass.btn--wa:hover::before{background:var(--black)}
+@media(max-width:720px){
+  .hero__btns{flex-direction:column;width:100%;gap:.75rem}
+  .hero__btns .btn--hero{flex:none;width:100%;min-height:54px;padding:0 1.2rem;font-size:.92rem;letter-spacing:.07em}
+}
+
+
+/* ===== Acceso Staff (discreto, footer) ===== */
+.footer__copy .container{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap}
+.staff-link{display:inline-flex;align-items:center;gap:.35rem;font-size:.72rem;opacity:.35;transition:opacity .25s}
+.staff-link:hover{opacity:.9}
+
+
+/* Reservado / Senado (catalogo en vivo) */
+.tag--res{background:var(--y);color:#000;box-shadow:0 4px 14px rgba(255,201,14,.45)}
+.car--res .car__img img{filter:grayscale(.4) brightness(.9)}

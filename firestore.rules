@@ -1,0 +1,35 @@
+rules_version = '2';
+// Pegar en Firebase Console > Firestore Database > Reglas > Publicar.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    // Mismo criterio que el panel: el email contiene "admin" => Administrador / Dueño
+    function isAdmin() {
+      return signedIn() && request.auth.token.email.lower().matches('.*admin.*');
+    }
+
+    // Catálogo PÚBLICO (espejo sin costos ni datos internos). Lo lee index.html sin login.
+    match /catalogo/{id} {
+      allow read: if true;
+      allow write: if signedIn();
+    }
+
+    // Datos internos: solo usuarios autenticados (staff)
+    match /vehiculos/{id} {
+      allow read, create, update: if signedIn();
+      allow delete: if isAdmin();
+    }
+    match /operaciones/{id} { allow read, write: if signedIn(); }
+    match /deudas/{id}      { allow read, write: if signedIn(); }
+
+    // Costos de toma y ganancias: SOLO Administrador
+    match /costos/{id} { allow read, write: if isAdmin(); }
+
+    // Tipo de cambio
+    match /config/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+  }
+}
