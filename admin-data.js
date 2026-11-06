@@ -36,7 +36,7 @@
       estado: 'disponible', origen: 'propio', consignante: '', fechaIngreso: isoDate(new Date()), fechaVenta: '',
       listaARS: 0, listaUSD: 0, minARS: 0, minUSD: 0, gastosARS: 0, gastosUSD: 0,
       costoARS: 0, costoUSD: 0, precioVentaUSD: 0,
-      categoria: 'sedan', foto: '', etiqueta: '', extra: '', orden: 0,
+      categoria: 'sedan', foto: '', imagenes: [], etiqueta: '', extra: '', orden: 0,
       docs: { titulo: false, cedula: false, f08: false, f12: false, informe: false, libreDeudaPrenda: false },
       deudaPatentes: { monto: 0, paga: 'agencia' },
       deudaMultas: { monto: 0, paga: 'agencia' }
@@ -58,9 +58,10 @@
   /** Espejo público: SOLO datos aptos para la web. null = no se publica. */
   function toPublic(v) {
     if (PUBLIC_STATES.indexOf(v.estado) < 0) return null;
+    const imagenes = Array.isArray(v.imagenes) && v.imagenes.length ? v.imagenes : (v.foto ? [v.foto] : []);
     return {
       marca: v.marca || '', titulo: publicTitle(v), categoria: v.categoria || 'sedan',
-      anio: v.anio || '', km: v.km || 0, foto: v.foto || '', etiqueta: v.etiqueta || '', extra: v.extra || '',
+      anio: v.anio || '', km: v.km || 0, foto: imagenes[0] || '', imagenes: imagenes, etiqueta: v.etiqueta || '', extra: v.extra || '',
       estado: v.estado, orden: v.orden || 0
     };
   }

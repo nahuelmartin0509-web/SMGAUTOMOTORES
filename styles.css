@@ -291,3 +291,19 @@ h2{font-size:clamp(1.8rem,3.4vw,2.6rem);margin-bottom:1.2rem}
 /* Reservado / Senado (catalogo en vivo) */
 .tag--res{background:var(--y);color:#000;box-shadow:0 4px 14px rgba(255,201,14,.45)}
 .car--res .car__img img{filter:grayscale(.4) brightness(.9)}
+
+
+/* ===== Carrusel de fotos del catalogo ===== */
+.car__img.has-gallery{touch-action:pan-y}
+.car__track{display:flex;width:100%;height:100%;transition:transform .45s cubic-bezier(.2,.8,.2,1)}
+.car__track img{flex:0 0 100%;min-width:100%;width:100%;height:100%;object-fit:cover;object-position:center 70%;-webkit-user-drag:none;user-select:none}
+.car:hover .car__track img{transform:none}
+.car__nav{position:absolute;top:50%;z-index:3;transform:translateY(-50%);width:36px;height:36px;border:0;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;font-size:.95rem;line-height:1;cursor:pointer;display:grid;place-items:center;opacity:0;transition:opacity .25s,background .2s}
+.car__nav:hover{background:var(--red)}
+.car__nav--prev{left:.6rem}.car__nav--next{right:.6rem}
+.car:hover .car__nav,.car__nav:focus-visible{opacity:1}
+.car__dots{position:absolute;left:0;right:0;bottom:.7rem;z-index:3;display:flex;justify-content:center;gap:5px;pointer-events:none}
+.car__dots i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.5);transition:.25s}
+.car__dots i.on{background:#fff;width:18px;border-radius:4px}
+@media(hover:none){.car__nav{opacity:.8;width:28px;height:28px;font-size:.75rem;background:rgba(0,0,0,.4)}.car__nav--prev{left:.35rem}.car__nav--next{right:.35rem}}
+@media(max-width:720px){.car__dots{bottom:.45rem}.car__dots i{width:5px;height:5px}.car__dots i.on{width:13px}}

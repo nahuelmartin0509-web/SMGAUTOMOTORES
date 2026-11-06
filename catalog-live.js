@@ -22,9 +22,16 @@
     const km = Number(c.km) > 0 ? nf.format(c.km) + ' km' : '0 km';
     const extra = c.extra ? `<li>${/gnc/i.test(c.extra) ? ICO_GNC : ICO_OK}${esc(c.extra)}</li>` : '';
     const msg = encodeURIComponent('Hola SMG Automotores, quiero consultar por el ' + (c.titulo || ''));
+    const imgs = (Array.isArray(c.imagenes) && c.imagenes.length ? c.imagenes : [c.foto || 'LOGO.png']).slice(0, 8);
+    const multi = imgs.length > 1;
+    const slides = imgs.map((s, i) => `<img src="${esc(s)}" alt="${titulo}${multi ? ' - foto ' + (i + 1) : ''}" ${i ? 'loading="lazy"' : ''} draggable="false">`).join('');
+    const nav = multi
+      ? `<button type="button" class="car__nav car__nav--prev" aria-label="Foto anterior">&#10094;</button><button type="button" class="car__nav car__nav--next" aria-label="Foto siguiente">&#10095;</button>
+          <div class="car__dots">${imgs.map((_, i) => `<i${i ? '' : ' class="on"'}></i>`).join('')}</div>` : '';
     return `<article class="car reveal${reservado ? ' car--res' : ''}" data-cat="${esc(c.categoria || 'sedan')}">
-        <div class="car__img">
-          <img src="${esc(c.foto || 'LOGO.png')}" alt="${titulo}" loading="lazy">
+        <div class="car__img${multi ? ' has-gallery' : ''}">
+          ${multi ? `<div class="car__track">${slides}</div>` : slides}
+          ${nav}
           ${tag}
           <span class="year">${esc(c.anio)}</span>
         </div>
@@ -36,6 +43,40 @@
         </div>
       </article>`;
   }
+
+  /* ---------- Carrusel de fotos (delegado: funciona aunque las tarjetas se re-rendericen) ---------- */
+  function go(box, to) {
+    const n = box.querySelectorAll('.car__track img').length; if (n < 2) return;
+    const i = (to + n) % n; box.dataset.i = i;
+    box.querySelector('.car__track').style.transform = 'translateX(-' + (i * 100) + '%)';
+    box.querySelectorAll('.car__dots i').forEach((d, k) => d.classList.toggle('on', k === i));
+  }
+  wrap.addEventListener('click', e => {
+    const b = e.target.closest('.car__nav'); if (!b) return;
+    e.preventDefault(); e.stopPropagation();
+    const box = b.closest('.car__img');
+    go(box, (+box.dataset.i || 0) + (b.classList.contains('car__nav--next') ? 1 : -1));
+  });
+  let tx = 0, ty = 0, tb = null, moved = false;
+  wrap.addEventListener('touchstart', e => {
+    tb = e.target.closest('.has-gallery'); if (!tb) return;
+    tx = e.touches[0].clientX; ty = e.touches[0].clientY; moved = false;
+  }, { passive: true });
+  wrap.addEventListener('touchmove', e => {
+    if (!tb) return;
+    if (Math.abs(e.touches[0].clientX - tx) > 10) moved = true;
+  }, { passive: true });
+  wrap.addEventListener('touchend', e => {
+    if (!tb) return;
+    const t = e.changedTouches[0], dx = t.clientX - tx, dy = t.clientY - ty;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+      e.stopPropagation();
+      go(tb, (+tb.dataset.i || 0) + (dx < 0 ? 1 : -1));
+    }
+    tb = null;
+  });
+  // un deslizamiento no debe disparar un clic en la tarjeta
+  wrap.addEventListener('click', e => { if (moved && e.target.closest('.has-gallery')) { e.stopPropagation(); e.preventDefault(); } moved = false; }, true);
 
   (async function () {
     try {

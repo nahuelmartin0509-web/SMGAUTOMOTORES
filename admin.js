@@ -143,7 +143,9 @@
     const isNew = !id;
     const v = isNew ? Db.newVehicle() : clone(vById(id));
     if (!v) return;
-    S.drawer = { isNew, base: v };
+    // Retrocompatibilidad: autos viejos con una sola `foto` pasan a ser una galería de 1 imagen
+    const imgs = Array.isArray(v.imagenes) && v.imagenes.length ? v.imagenes.slice() : (v.foto ? [v.foto] : []);
+    S.drawer = { isNew, base: v, imgs, busy: false };
     $('#drEyebrow').textContent = isNew ? 'Nuevo ingreso' : 'Ficha 360°';
     $('#drTitle').textContent = isNew ? 'Alta de vehículo' : `${label(v)} · ${v.dominio || 'sin dominio'}`;
     $('#drDelete').hidden = isNew || !isAdmin();
@@ -152,7 +154,7 @@
     $$('#drBody .pane').forEach(p => p.classList.toggle('is-active', p.dataset.pane === 'tec'));
     $('#scrim').hidden = false;
     $('#drawer').classList.add('open'); $('#drawer').setAttribute('aria-hidden', 'false');
-    updateProfit(); toggleConsig();
+    updateProfit(); toggleConsig(); renderThumbs();
   }
   function closeDrawer() {
     $('#drawer').classList.remove('open'); $('#drawer').setAttribute('aria-hidden', 'true');
@@ -179,16 +181,13 @@
       <div class="sub" style="margin-top:1.2rem">Publicación en el sitio web</div>
       <p class="note" style="margin:-.4rem 0 .8rem">index.html muestra los autos <b>Disponibles</b> y los <b>Señados</b> (con cartel "Reservado"). En Taller y Vendidos se ocultan.</p>
       <div class="row3">${sel('Categoría', 'categoria', CATEGORIAS, v.categoria || 'sedan')}${fld('Etiqueta en la foto', 'etiqueta', v.etiqueta, 'text', 'placeholder="Ej: 0km, Destacado"')}${fld('Detalle destacado', 'extra', v.extra, 'text', 'placeholder="Ej: GNC de 5ta"')}</div>
-      <div class="photo">
-        <img id="fotoPrev" alt="Foto del vehículo" src="${esc(v.foto || '')}" ${v.foto ? '' : 'hidden'}>
-        <div class="photo__ctl">
-          <input type="hidden" name="foto" value="${esc(v.foto || '')}">
-          <input type="file" id="fotoFile" accept="image/*" hidden>
-          <button type="button" class="btn btn--outline btn--sm" id="fotoPick">Subir foto</button>
-          <button type="button" class="link link--mut" id="fotoDel">Quitar</button>
-          <span class="note" id="fotoNote">${v.foto ? '' : 'Sin foto: en la web se mostrará el logo.'}</span>
-        </div>
+      <div class="sub" style="margin-top:1.2rem">Fotos (galería)</div>
+      <div class="photo-bar">
+        <input type="file" id="fotoFile" accept="image/*" multiple hidden>
+        <button type="button" class="btn btn--outline btn--sm" id="fotoPick">Subir fotos</button>
+        <span class="note" id="fotoNote"></span>
       </div>
+      <div class="thumbs" id="thumbs"></div>
     </div>
 
     <div class="pane" data-pane="pre">
@@ -236,26 +235,61 @@
       <div class="big"><span>${venta ? 'Ganancia neta real' : 'Ganancia neta real (sin venta aún)'}</span><span class="${venta ? cl(gr) : ''}">${venta ? usd(gr) : '—'}</span></div>
       ${cons ? '<div><span style="color:#9a9aa2;font-size:.8rem">Consignación: cargá costo 0 y el resultado equivale a la comisión.</span></div>' : ''}`;
   }
-  function setFoto(val) {
-    const f = $('#vForm').elements.foto, img = $('#fotoPrev');
-    f.value = val; img.src = val; img.hidden = !val;
-    $('#fotoNote').textContent = val ? 'Se guarda al presionar "Guardar cambios".' : 'Sin foto: en la web se mostrará el logo.';
+  /* ----- Galería de fotos (máx. 8, comprimidas en el navegador y guardadas como dataURL en Firestore) ----- */
+  const MAX_FOTOS = 8, MAX_W = 1000, FOTO_BUDGET = 95000; // ~70 KB binarios por foto => 8 fotos < 800 KB (límite Firestore: 1 MB por documento)
+  function renderThumbs() {
+    if (!S.drawer) return;
+    const imgs = S.drawer.imgs;
+    $('#thumbs').innerHTML = imgs.map((src, i) => `
+      <div class="thumb ${i === 0 ? 'is-cover' : ''}" data-i="${i}">
+        <img src="${esc(src)}" alt="Foto ${i + 1}">
+        ${i === 0 ? '<span class="thumb__cover">Portada</span>' : '<button type="button" class="thumb__make" data-act="cover" title="Usar como portada">Hacer portada</button>'}
+        <button type="button" class="thumb__x" data-act="del" aria-label="Eliminar foto" title="Eliminar">×</button>
+      </div>`).join('');
+    $('#fotoNote').textContent = imgs.length
+      ? `${imgs.length} de ${MAX_FOTOS} fotos. La primera es la portada en la web. Se guardan al presionar "Guardar cambios".`
+      : 'Sin fotos: en la web se mostrará el logo.';
+    $('#fotoPick').disabled = imgs.length >= MAX_FOTOS || S.drawer.busy;
   }
-  function resizeImage(file, maxW = 900) {
+  /** Redimensiona a máx. 1000 px de ancho y comprime a JPEG (calidad inicial 0.75); si pesa de más, baja calidad y luego tamaño. */
+  function resizeImage(file) {
     return new Promise((resolve, reject) => {
       const img = new Image(), url = URL.createObjectURL(file);
       img.onload = () => {
-        const k = Math.min(1, maxW / img.width), c = document.createElement('canvas');
-        c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
-        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
         URL.revokeObjectURL(url);
-        let q = 0.78, out = c.toDataURL('image/jpeg', q);
-        while (out.length > 700000 && q > 0.35) { q -= 0.1; out = c.toDataURL('image/jpeg', q); } // Firestore: máx 1 MB por documento
+        let w = Math.min(img.width, MAX_W), q = 0.75, out;
+        for (let n = 0; n < 12; n++) {
+          const c = document.createElement('canvas');
+          c.width = Math.round(w); c.height = Math.round(img.height * (w / img.width));
+          const ctx = c.getContext('2d');
+          ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+          ctx.drawImage(img, 0, 0, c.width, c.height);
+          out = c.toDataURL('image/jpeg', q);
+          if (out.length <= FOTO_BUDGET) break;
+          if (q > 0.5) q -= 0.08; else w *= 0.88;
+        }
         resolve(out);
       };
       img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('img')); };
       img.src = url;
     });
+  }
+  async function addFotos(files) {
+    const d = S.drawer; if (!d) return;
+    const free = MAX_FOTOS - d.imgs.length;
+    const list = [...files].filter(f => /^image\//.test(f.type));
+    if (!list.length) return;
+    if (list.length > free) toast(`Máximo ${MAX_FOTOS} fotos por vehículo: se agregan ${Math.max(free, 0)}.`);
+    d.busy = true; renderThumbs();
+    $('#fotoNote').textContent = 'Comprimiendo fotos…';
+    try {
+      for (const f of list.slice(0, Math.max(free, 0))) {
+        const data = await resizeImage(f);
+        if (S.drawer !== d) return; // se cerró la ficha mientras tanto
+        d.imgs.push(data);
+      }
+    } catch (err) { toast('No se pudo procesar una de las imágenes.'); }
+    d.busy = false; renderThumbs();
   }
   async function saveVehicle(e) {
     e.preventDefault();
@@ -267,8 +301,13 @@
     if (out.dominio && S.vehicles.some(v => v.id !== out.id && (v.dominio || '').replace(/\s/g, '') === out.dominio.replace(/\s/g, ''))) { toast('Ya existe un vehículo con ese dominio.'); return; }
     if (out.estado === 'vendido' && !out.fechaVenta) out.fechaVenta = isoDate(new Date());
     if (out.estado !== 'vendido') out.fechaVenta = '';
+    if (S.drawer.busy) { toast('Esperá: se están comprimiendo las fotos.'); return; }
+    out.imagenes = S.drawer.imgs.slice();
+    out.foto = out.imagenes[0] || ''; // la portada se mantiene también en el campo anterior `foto`
+    if (JSON.stringify(out.imagenes).length > 900000) { toast('Las fotos pesan demasiado para guardarse. Quitá alguna.'); return; }
     const wasNew = S.drawer.isNew;
-    await Db.save('vehicles', out);
+    try { await Db.save('vehicles', out); }
+    catch (err) { console.error(err); toast('No se pudo guardar (' + (err.code || err.message) + ').'); return; }
     closeDrawer();
     toast(wasNew ? 'Vehículo ingresado al stock.' : 'Ficha actualizada.', true);
   }
@@ -598,14 +637,18 @@ settings             tc (tipo de cambio ARS/USD)
 
     // foto del vehículo: se redimensiona en el navegador y se guarda como dataURL en Firestore (sin Storage)
     $('#drBody').addEventListener('click', e => {
-      if (e.target.id === 'fotoPick') $('#fotoFile').click();
-      if (e.target.id === 'fotoDel') setFoto('');
+      if (e.target.id === 'fotoPick') { $('#fotoFile').click(); return; }
+      const b = e.target.closest('[data-act]'), t = e.target.closest('.thumb');
+      if (!b || !t || !S.drawer) return;
+      const i = +t.dataset.i, imgs = S.drawer.imgs;
+      if (b.dataset.act === 'del') imgs.splice(i, 1);
+      else if (b.dataset.act === 'cover') imgs.unshift(imgs.splice(i, 1)[0]);
+      renderThumbs();
     });
     $('#drBody').addEventListener('change', async e => {
-      if (e.target.id !== 'fotoFile' || !e.target.files[0]) return;
-      try { setFoto(await resizeImage(e.target.files[0])); }
-      catch (err) { toast('No se pudo procesar la imagen.'); }
-      e.target.value = '';
+      if (e.target.id !== 'fotoFile') return;
+      const files = [...e.target.files]; e.target.value = '';
+      await addFotos(files);
     });
 
     // operaciones
