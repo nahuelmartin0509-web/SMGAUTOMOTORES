@@ -73,6 +73,7 @@
           <option value="propio">Propio / Agencia</option>
           <option value="consignacion">Consignación</option>
         </select>
+        <button class="btn btn--red" id="fichaBtn">Descargar ficha</button>
         <button class="btn btn--red" id="newVehicleBtn">+ Nuevo Ingreso</button>
       </div>
       <div class="card table-wrap">
@@ -197,9 +198,11 @@
 </div>
 
 <div class="toast" id="toast"></div>
+<input type="file" id="docFileInput" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" hidden>
 
 <script src="firebase-config.js"></script>
 <script src="admin-data.js"></script>
+<script src="admin-pdf.js"></script>
 <script src="admin.js"></script>
 </body>
 </html>

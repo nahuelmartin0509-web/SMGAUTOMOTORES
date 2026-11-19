@@ -210,3 +210,22 @@ body.role-vendedor .admin-only{display:none!important}
 .thumb__make:hover{background:var(--red)}
 @media(hover:none){.thumb__make{opacity:1}}
 @media(max-width:600px){.thumbs{grid-template-columns:repeat(3,1fr)}}
+
+/* gastos por unidad y comprobantes */
+.ghead,.grow{display:grid;grid-template-columns:1.1fr 1.6fr .8fr 70px 28px;gap:.4rem;align-items:center}
+.ghead{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:.3rem}
+.grow{margin-bottom:.4rem}
+.grow input,.grow select{padding:.5rem .55rem;font-size:.85rem;min-width:0}
+.grow .g-concepto{text-transform:uppercase;font-weight:700}
+.grow__x{width:26px;height:26px;border:0;border-radius:50%;background:var(--grey);color:var(--muted);font-size:1.1rem;line-height:1;cursor:pointer}
+.grow__x:hover{background:var(--red);color:#fff}
+.gfoot{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-top:.7rem}
+.gtotal{display:flex;gap:.6rem;align-items:baseline;background:var(--black);color:#fff;padding:.55rem .9rem;border-left:4px solid var(--red);border-radius:4px;font-size:.85rem}
+.gtotal span{color:#9a9aa2;text-transform:uppercase;letter-spacing:.08em;font-size:.68rem;font-weight:700}
+.gtotal b{font-size:1rem}
+.gtotal small{color:#9a9aa2}
+.docfile{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;margin:-.2rem 0 .9rem 1.7rem;padding:.5rem .7rem;background:var(--grey);border-left:3px solid var(--line);border-radius:3px}
+.docfile small{color:var(--muted)}
+.docfile__name{flex:1;min-width:150px;font-size:.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.docfile__name b{display:inline-block;background:var(--black);color:#fff;font-size:.62rem;padding:.1rem .35rem;border-radius:3px;margin-right:.3rem}
+@media(max-width:600px){.ghead{display:none}.grow{grid-template-columns:1fr 1fr 1fr 70px 28px}.grow .g-concepto{grid-column:1/-1}.grow input[data-k=detalle]{grid-column:1/4}}

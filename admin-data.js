@@ -37,15 +37,17 @@
       listaARS: 0, listaUSD: 0, minARS: 0, minUSD: 0, gastosARS: 0, gastosUSD: 0,
       costoARS: 0, costoUSD: 0, precioVentaUSD: 0,
       categoria: 'sedan', foto: '', imagenes: [], etiqueta: '', extra: '', orden: 0,
-      docs: { titulo: false, cedula: false, f08: false, f12: false, informe: false, libreDeudaPrenda: false },
+      docs: { titulo: false, cedula: false, f08: false, f12: false, informe: false, informeMulta: false, duplicado: false, manuales: false },
+      gastosItems: [], archivos: {},
       deudaPatentes: { monto: 0, paga: 'agencia' },
       deudaMultas: { monto: 0, paga: 'agencia' }
     };
   }
   function normalizeVehicle(v) {
     const b = blankVehicle();
+    const docs = Object.assign(b.docs, v.docs); delete docs.libreDeudaPrenda; // ítem eliminado del checklist
     return Object.assign(b, v, {
-      docs: Object.assign(b.docs, v.docs),
+      docs: docs,
       deudaPatentes: Object.assign(b.deudaPatentes, v.deudaPatentes),
       deudaMultas: Object.assign(b.deudaMultas, v.deudaMultas)
     });
@@ -246,8 +248,26 @@
       const batch = fs.writeBatch(db);
       batch.delete(fs.doc(db, 'vehiculos', id));
       batch.delete(fs.doc(db, 'catalogo', id));
+      ['titulo', 'informe', 'informeMulta'].forEach(t => batch.delete(fs.doc(db, 'archivos', id + '__' + t)));
       if (st.role === 'admin') batch.delete(fs.doc(db, 'costos', id));
       await batch.commit();
+    },
+
+    /* Comprobantes (Título, Informe de dominio, Informe de multa): un documento por archivo en `archivos/{vehiculoId__tipo}` */
+    async saveArchivo(vehicleId, tipo, obj) {
+      const f = await getFb(), { fs, db } = f;
+      const u = f.authI.currentUser;
+      await fs.setDoc(fs.doc(db, 'archivos', vehicleId + '__' + tipo),
+        Object.assign({}, obj, { vehicleId, tipo, subidoPor: u ? u.email : '' }));
+    },
+    async getArchivo(vehicleId, tipo) {
+      const { fs, db } = await getFb();
+      const s = await fs.getDoc(fs.doc(db, 'archivos', vehicleId + '__' + tipo));
+      return s.exists() ? s.data() : null;
+    },
+    async removeArchivo(vehicleId, tipo) {
+      const { fs, db } = await getFb();
+      await fs.deleteDoc(fs.doc(db, 'archivos', vehicleId + '__' + tipo));
     },
 
     getSettings() { return Promise.resolve(Object.assign({}, st.settings)); },

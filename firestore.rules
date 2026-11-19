@@ -23,6 +23,9 @@ service cloud.firestore {
     match /operaciones/{id} { allow read, write: if signedIn(); }
     match /deudas/{id}      { allow read, write: if signedIn(); }
 
+    // Comprobantes adjuntos (Título, Informe de dominio, Informe de multa): solo staff
+    match /archivos/{id}    { allow read, write: if signedIn(); }
+
     // Costos de toma y ganancias: SOLO Administrador
     match /costos/{id} { allow read, write: if isAdmin(); }
 

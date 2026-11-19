@@ -12,9 +12,12 @@
   const ORIGEN = { propio: 'Propio / Agencia', consignacion: 'Consignación' };
   const RES_ESTADOS = { esperando_credito: 'Esperando crédito', esperando_transferencia: 'Esperando transferencia', listo_entrega: 'Listo para entregar' };
   const DOCS = [
-    ['titulo', 'Título'], ['cedula', 'Cédula'], ['f08', 'Formulario 08 firmado / certificado'],
-    ['f12', 'Verificación Policial F12'], ['informe', 'Informe de dominio'], ['libreDeudaPrenda', 'Libre deuda de prenda']
+    ['titulo', 'Título'], ['cedula', 'Cédula'], ['f08', 'Formulario 08'],
+    ['f12', 'Verificación Policial F12'], ['informe', 'Informe de dominio'], ['informeMulta', 'Informe de multa'],
+    ['duplicado', 'Duplicado'], ['manuales', 'Manuales']
   ];
+  const DOC_FILES = ['titulo', 'informe', 'informeMulta']; // documentos que admiten adjuntar PDF / PNG / JPG
+  const DOC_LABEL = Object.fromEntries(DOCS);
   const PAGAN = { agencia: 'Agencia', cliente: 'Cliente', titular: 'Titular (consignante)' };
   const CATEGORIAS = { sedan: 'Sedán', hatchback: 'Hatchback', suv: 'SUV', pickup: 'Pick-up / 4x4', utilitario: 'Utilitarios' };
   const VIEW_TITLES = { inventory: 'Inventario y Ficha 360°', ops: 'Operaciones, Señas y Permutas', debts: 'Deudas y Cuentas Corrientes', data: 'Datos / Firebase' };
@@ -145,7 +148,16 @@
     if (!v) return;
     // Retrocompatibilidad: autos viejos con una sola `foto` pasan a ser una galería de 1 imagen
     const imgs = Array.isArray(v.imagenes) && v.imagenes.length ? v.imagenes.slice() : (v.foto ? [v.foto] : []);
-    S.drawer = { isNew, base: v, imgs, busy: false };
+    // Gastos por unidad: filas {concepto, detalle, valor, moneda}. Si el auto solo tenía los totales viejos, se migran a una fila.
+    let gastos = Array.isArray(v.gastosItems) ? clone(v.gastosItems) : [];
+    if (!gastos.length) {
+      if (num(v.gastosARS)) gastos.push({ concepto: 'GASTOS DE ALISTAMIENTO', detalle: 'Total cargado antes del detalle por ítem', valor: num(v.gastosARS), moneda: 'ARS' });
+      if (num(v.gastosUSD)) gastos.push({ concepto: 'GASTOS DE ALISTAMIENTO', detalle: 'Total cargado antes del detalle por ítem', valor: num(v.gastosUSD), moneda: 'USD' });
+    }
+    // Comprobantes adjuntos (solo metadatos; el contenido está en la colección `archivos` y se pide al abrirlo)
+    const files = {};
+    DOC_FILES.forEach(k => { if (v.archivos && v.archivos[k]) files[k] = Object.assign({}, v.archivos[k]); });
+    S.drawer = { isNew, base: v, imgs, busy: false, gastos, files, removed: [] };
     $('#drEyebrow').textContent = isNew ? 'Nuevo ingreso' : 'Ficha 360°';
     $('#drTitle').textContent = isNew ? 'Alta de vehículo' : `${label(v)} · ${v.dominio || 'sin dominio'}`;
     $('#drDelete').hidden = isNew || !isAdmin();
@@ -154,7 +166,7 @@
     $$('#drBody .pane').forEach(p => p.classList.toggle('is-active', p.dataset.pane === 'tec'));
     $('#scrim').hidden = false;
     $('#drawer').classList.add('open'); $('#drawer').setAttribute('aria-hidden', 'false');
-    updateProfit(); toggleConsig(); renderThumbs();
+    updateProfit(); toggleConsig(); renderThumbs(); renderGastos(); renderDocFiles();
   }
   function closeDrawer() {
     $('#drawer').classList.remove('open'); $('#drawer').setAttribute('aria-hidden', 'true');
@@ -195,8 +207,8 @@
       <div class="row2">${fld('Lista · USD', 'listaUSD', v.listaUSD, 'number')}${fld('Lista · ARS', 'listaARS', v.listaARS, 'number')}</div>
       <div class="sub">Precio mínimo de contado</div>
       <div class="row2">${fld('Mínimo · USD', 'minUSD', v.minUSD, 'number')}${fld('Mínimo · ARS', 'minARS', v.minARS, 'number')}</div>
-      <div class="sub">Gastos de alistamiento / taller</div>
-      <div class="row2">${fld('Gastos · USD', 'gastosUSD', v.gastosUSD, 'number')}${fld('Gastos · ARS', 'gastosARS', v.gastosARS, 'number')}</div>
+      <div class="sub">Costos y gastos de la unidad</div>
+      <div id="gastosBox"></div>
       ${adm ? `
       <div class="sub">Costo de toma (solo Administrador)</div>
       <div class="row3">${fld('Costo · USD', 'costoUSD', v.costoUSD, 'number')}${fld('Costo · ARS', 'costoARS', v.costoARS, 'number')}${fld('Venta final · USD', 'precioVentaUSD', v.precioVentaUSD, 'number')}</div>
@@ -206,7 +218,7 @@
 
     <div class="pane" data-pane="doc">
       <div class="sub">Checklist de documentación</div>
-      ${DOCS.map(([k, l]) => chk(l, 'docs.' + k, v.docs && v.docs[k])).join('')}
+      ${DOCS.map(([k, l]) => chk(l, 'docs.' + k, v.docs && v.docs[k]) + (DOC_FILES.includes(k) ? `<div class="docfile" data-tipo="${k}"></div>` : '')).join('')}
       <div class="sub" style="margin-top:1.2rem">Deudas</div>
       <div class="debt-box">
         <div class="row2">${fld('Deuda de patentes (Rentas) · ARS', 'deudaPatentes.monto', pat.monto, 'number')}${sel('¿Quién abona?', 'deudaPatentes.paga', PAGAN, pat.paga)}</div>
@@ -224,7 +236,8 @@
     const box = $('#profitBox'); if (!box) return;
     const els = $('#vForm').elements, g = n => num(els[n] && els[n].value);
     const lista = g('listaUSD') + g('listaARS') / tc(), min = g('minUSD') + g('minARS') / tc();
-    const gastos = g('gastosUSD') + g('gastosARS') / tc(), costo = g('costoUSD') + g('costoARS') / tc(), venta = g('precioVentaUSD');
+    const gt = gastosTotals(S.drawer && S.drawer.gastos);
+    const gastos = gt.usd + gt.ars / tc(), costo = g('costoUSD') + g('costoARS') / tc(), venta = g('precioVentaUSD');
     const cl = n => n >= 0 ? 'pos' : 'neg';
     const gl = lista - costo - gastos, gm = min - costo - gastos, gr = venta - costo - gastos;
     const cons = els.origen && els.origen.value === 'consignacion';
@@ -252,12 +265,12 @@
     $('#fotoPick').disabled = imgs.length >= MAX_FOTOS || S.drawer.busy;
   }
   /** Redimensiona a máx. 1000 px de ancho y comprime a JPEG (calidad inicial 0.75); si pesa de más, baja calidad y luego tamaño. */
-  function resizeImage(file) {
+  function resizeImage(file, maxW = MAX_W, budget = FOTO_BUDGET) {
     return new Promise((resolve, reject) => {
       const img = new Image(), url = URL.createObjectURL(file);
       img.onload = () => {
         URL.revokeObjectURL(url);
-        let w = Math.min(img.width, MAX_W), q = 0.75, out;
+        let w = Math.min(img.width, maxW), q = 0.75, out;
         for (let n = 0; n < 12; n++) {
           const c = document.createElement('canvas');
           c.width = Math.round(w); c.height = Math.round(img.height * (w / img.width));
@@ -265,7 +278,7 @@
           ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
           ctx.drawImage(img, 0, 0, c.width, c.height);
           out = c.toDataURL('image/jpeg', q);
-          if (out.length <= FOTO_BUDGET) break;
+          if (out.length <= budget) break;
           if (q > 0.5) q -= 0.08; else w *= 0.88;
         }
         resolve(out);
@@ -291,6 +304,95 @@
     } catch (err) { toast('No se pudo procesar una de las imágenes.'); }
     d.busy = false; renderThumbs();
   }
+  /* ----- Costos y gastos por unidad ----- */
+  const GASTO_SUGERIDOS = ['DETAILING', 'CHAPA Y PINTURA', 'MECÁNICA', 'SERVICE', 'NEUMÁTICOS', 'LAVADO', 'GESTORÍA', 'PATENTES', 'MULTAS', 'GRABADO DE CRISTALES', 'TAPICERÍA', 'ELECTRICIDAD'];
+  function gastosTotals(list) {
+    const t = { ars: 0, usd: 0 };
+    (list || []).forEach(g => { if (g.moneda === 'USD') t.usd += num(g.valor); else t.ars += num(g.valor); });
+    return t;
+  }
+  function gastosTotalHTML() {
+    const t = gastosTotals(S.drawer && S.drawer.gastos), eq = t.usd + t.ars / tc();
+    const parts = [];
+    if (t.usd) parts.push(usd(t.usd));
+    if (t.ars) parts.push(ars(t.ars));
+    return `<span>Total de gastos</span><b>${parts.length ? parts.join(' + ') : '—'}</b>${t.usd && t.ars ? `<small>≈ ${usd(eq)}</small>` : ''}`;
+  }
+  function renderGastos() {
+    const box = $('#gastosBox'); if (!box || !S.drawer) return;
+    const rows = S.drawer.gastos.map((g, i) => `
+      <div class="grow" data-i="${i}">
+        <input class="g-concepto" data-k="concepto" list="gConceptos" placeholder="Ej: DETAILING" value="${esc(g.concepto)}" aria-label="Concepto">
+        <input data-k="detalle" placeholder="Descripción o nota del trabajo" value="${esc(g.detalle)}" aria-label="Detalles">
+        <input data-k="valor" type="number" step="any" min="0" placeholder="0" value="${g.valor === 0 || g.valor === '' ? '' : esc(g.valor)}" aria-label="Valor">
+        <select data-k="moneda" aria-label="Moneda"><option value="ARS" ${g.moneda === 'USD' ? '' : 'selected'}>ARS</option><option value="USD" ${g.moneda === 'USD' ? 'selected' : ''}>USD</option></select>
+        <button type="button" class="grow__x" data-act="gdel" aria-label="Eliminar gasto" title="Eliminar">×</button>
+      </div>`).join('');
+    box.innerHTML = `
+      <datalist id="gConceptos">${GASTO_SUGERIDOS.map(c => `<option value="${c}">`).join('')}</datalist>
+      <div class="ghead"><span>Concepto</span><span>Detalles</span><span>Valor</span><span>Mon.</span><span></span></div>
+      ${rows || '<p class="note" style="margin:.2rem 0 .6rem">Todavía no hay gastos cargados para esta unidad.</p>'}
+      <div class="gfoot"><button type="button" class="btn btn--outline btn--sm" data-act="gadd">+ Agregar gasto</button><div class="gtotal" id="gTotal">${gastosTotalHTML()}</div></div>`;
+  }
+
+  /* ----- Comprobantes adjuntos (Título, Informe de dominio, Informe de multa) ----- */
+  const FILE_MAX_CHARS = 950000; // ~700 KB binarios: Firestore limita cada documento a 1 MB
+  const fmtSize = b => b >= 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
+  function renderDocFiles() {
+    if (!S.drawer) return;
+    $$('#drBody .docfile').forEach(box => {
+      const k = box.dataset.tipo, f = S.drawer.files[k];
+      box.innerHTML = f
+        ? `<span class="docfile__name" title="${esc(f.nombre)}"><b>${/pdf/i.test(f.mime) ? 'PDF' : 'IMG'}</b> ${esc(f.nombre)} <small>· ${fmtSize(f.size)}${f.data ? ' · sin guardar' : ''}</small></span>
+           <button type="button" class="link" data-fa="view" data-k="${k}">Ver</button>
+           <button type="button" class="link" data-fa="pick" data-k="${k}">Reemplazar</button>
+           <button type="button" class="link link--mut" data-fa="del" data-k="${k}">Quitar</button>`
+        : `<button type="button" class="btn btn--outline btn--sm" data-fa="pick" data-k="${k}">Adjuntar ${esc(DOC_LABEL[k].toLowerCase())}</button><small>PDF, PNG o JPG</small>`;
+    });
+  }
+  const readAsDataURL = file => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(new Error('read')); r.readAsDataURL(file); });
+  async function attachFile(k, file) {
+    const d = S.drawer; if (!d || !file) return;
+    const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+    const isImg = /^image\/(png|jpe?g)$/i.test(file.type) || /\.(png|jpe?g)$/i.test(file.name);
+    if (!isPdf && !isImg) { toast('Formato no permitido. Usá PDF, PNG o JPG.'); return; }
+    try {
+      let data, mime;
+      if (isPdf) {
+        data = await readAsDataURL(file); mime = 'application/pdf';
+        if (data.length > FILE_MAX_CHARS) { toast(`El PDF pesa ${fmtSize(file.size)}. El máximo es ~700 KB: comprimilo o adjuntá una foto.`); return; }
+      } else {
+        data = await resizeImage(file, 1600, FILE_MAX_CHARS - 20000); mime = 'image/jpeg'; // imágenes: se comprimen automáticamente
+      }
+      if (S.drawer !== d) return;
+      d.files[k] = { nombre: file.name, mime, size: Math.round(data.length * 0.75), fecha: isoDate(new Date()), data };
+      const cb = $('#vForm').elements['docs.' + k]; if (cb) cb.checked = true; // al adjuntar, el ítem queda tildado
+      renderDocFiles();
+      toast('Archivo listo. Se guarda al presionar "Guardar cambios".', true);
+    } catch (err) { console.error(err); toast('No se pudo procesar el archivo.'); }
+  }
+  async function viewFile(k) {
+    const d = S.drawer, f = d && d.files[k]; if (!f) return;
+    const w = window.open('', '_blank'); // se abre sincrónicamente para evitar el bloqueador de ventanas
+    try {
+      let data = f.data;
+      if (!data) { const a = await Db.getArchivo(d.base.id, k); data = a && a.data; }
+      if (!data) throw new Error('vacío');
+      const [head, b64] = data.split(','), mime = (head.match(/:(.*?);/) || [])[1] || f.mime;
+      const bin = atob(b64), arr = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+      const url = URL.createObjectURL(new Blob([arr], { type: mime }));
+      if (w) w.location.href = url; else window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 120000);
+    } catch (err) { console.error(err); if (w) w.close(); toast('No se pudo abrir el archivo.'); }
+  }
+  function removeFile(k) {
+    const d = S.drawer; if (!d || !d.files[k]) return;
+    if (!d.files[k].data && !d.removed.includes(k)) d.removed.push(k); // ya estaba guardado: se borra al guardar
+    delete d.files[k];
+    renderDocFiles();
+  }
+
   async function saveVehicle(e) {
     e.preventDefault();
     if (!S.drawer) return;
@@ -305,9 +407,28 @@
     out.imagenes = S.drawer.imgs.slice();
     out.foto = out.imagenes[0] || ''; // la portada se mantiene también en el campo anterior `foto`
     if (JSON.stringify(out.imagenes).length > 900000) { toast('Las fotos pesan demasiado para guardarse. Quitá alguna.'); return; }
-    const wasNew = S.drawer.isNew;
-    try { await Db.save('vehicles', out); }
+    const wasNew = S.drawer.isNew, d = S.drawer;
+    // Gastos por unidad: se guardan las filas y los totales (gastosARS / gastosUSD) dentro del documento del vehículo
+    const items = d.gastos.map(g => ({ concepto: String(g.concepto || '').trim(), detalle: String(g.detalle || '').trim(), valor: num(g.valor), moneda: g.moneda === 'USD' ? 'USD' : 'ARS' }))
+      .filter(g => g.concepto || g.valor);
+    const gt = gastosTotals(items);
+    out.gastosItems = items; out.gastosARS = gt.ars; out.gastosUSD = gt.usd;
+    // Comprobantes: metadatos en el vehículo, contenido en la colección `archivos`
+    out.archivos = {};
+    Object.entries(d.files).forEach(([k, f]) => { out.archivos[k] = { nombre: f.nombre, mime: f.mime, size: f.size, fecha: f.fecha }; });
+    let saved;
+    try { saved = await Db.save('vehicles', out); }
     catch (err) { console.error(err); toast('No se pudo guardar (' + (err.code || err.message) + ').'); return; }
+    try {
+      for (const k of d.removed) if (!d.files[k]) await Db.removeArchivo(saved.id, k);
+      for (const [k, f] of Object.entries(d.files)) {
+        if (f.data) await Db.saveArchivo(saved.id, k, { nombre: f.nombre, mime: f.mime, size: f.size, fecha: f.fecha, data: f.data });
+      }
+    } catch (err) {
+      console.error(err); closeDrawer();
+      toast('El vehículo se guardó, pero falló la carga de un comprobante (' + (err.code || err.message) + ').');
+      return;
+    }
     closeDrawer();
     toast(wasNew ? 'Vehículo ingresado al stock.' : 'Ficha actualizada.', true);
   }
@@ -519,8 +640,10 @@
     $('#schemaBox').textContent =
 `vehicles/{id}        dominio, marca, modelo, version, anio, km, color, chasis, motor, ubicacion, segundaLlave,
                      estado (disponible|senado|taller|vendido), origen (propio|consignacion), consignante,
-                     fechaIngreso, fechaVenta, listaARS/USD, minARS/USD, gastosARS/USD, costoARS/USD*, precioVentaUSD*,
-                     docs{titulo,cedula,f08,f12,informe,libreDeudaPrenda}, deudaPatentes{monto,paga}, deudaMultas{monto,paga}
+                     fechaIngreso, fechaVenta, listaARS/USD, minARS/USD, gastosItems[{concepto,detalle,valor,moneda}], gastosARS/USD (totales),
+                     costoARS/USD*, precioVentaUSD*, archivos{titulo,informe,informeMulta}(metadatos),
+                     docs{titulo,cedula,f08,f12,informe,informeMulta,duplicado,manuales}, deudaPatentes{monto,paga}, deudaMultas{monto,paga}
+archivos/{vehiculoId__tipo}  vehicleId, tipo, nombre, mime, size, fecha, data (dataURL PDF/PNG/JPG, máx ~700 KB)
 reservations/{id}    vehicleId, cliente, telefono, vendedor, montoARS, montoUSD, vencimiento,
                      estado (esperando_credito|esperando_transferencia|listo_entrega|entregado),
                      permuta{activa,llaveXLlave,descripcion,dominio,valorUSD}, pago{efectivo,transferencia,financiacion}
@@ -618,6 +741,14 @@ settings             tc (tipo de cambio ARS/USD)
     // inventario
     ['invSearch', 'invEstado', 'invOrigen'].forEach(id => $('#' + id).addEventListener('input', renderInventory));
     $('#newVehicleBtn').addEventListener('click', () => openDrawer(null));
+    $('#fichaBtn').addEventListener('click', async e => {
+      const btn = e.currentTarget, list = S.vehicles.filter(v => v.estado === 'disponible');
+      if (!list.length) { toast('No hay unidades disponibles para exportar.'); return; }
+      btn.disabled = true; const txt = btn.textContent; btn.textContent = 'Generando PDF…';
+      try { await window.SMGPdf.stock(list); toast('Ficha descargada.', true); }
+      catch (err) { console.error(err); toast('No se pudo generar el PDF. Revisá tu conexión e intentá de nuevo.'); }
+      finally { btn.disabled = false; btn.textContent = txt; }
+    });
     $('#invBody').addEventListener('click', e => { const tr = e.target.closest('tr[data-id]'); if (tr) openDrawer(tr.dataset.id); });
     $('#stBody').addEventListener('click', e => { const tr = e.target.closest('tr[data-id]'); if (tr) openDrawer(tr.dataset.id); });
 
@@ -638,6 +769,22 @@ settings             tc (tipo de cambio ARS/USD)
     // foto del vehículo: se redimensiona en el navegador y se guarda como dataURL en Firestore (sin Storage)
     $('#drBody').addEventListener('click', e => {
       if (e.target.id === 'fotoPick') { $('#fotoFile').click(); return; }
+      // gastos por unidad
+      const ga = e.target.closest('[data-act="gadd"],[data-act="gdel"]');
+      if (ga && S.drawer) {
+        if (ga.dataset.act === 'gadd') S.drawer.gastos.push({ concepto: '', detalle: '', valor: '', moneda: 'ARS' });
+        else S.drawer.gastos.splice(+ga.closest('.grow').dataset.i, 1);
+        renderGastos(); updateProfit(); return;
+      }
+      // comprobantes
+      const fa = e.target.closest('[data-fa]');
+      if (fa && S.drawer) {
+        const k = fa.dataset.k;
+        if (fa.dataset.fa === 'pick') { const inp = $('#docFileInput'); inp.dataset.k = k; inp.click(); }
+        else if (fa.dataset.fa === 'view') viewFile(k);
+        else if (fa.dataset.fa === 'del') removeFile(k);
+        return;
+      }
       const b = e.target.closest('[data-act]'), t = e.target.closest('.thumb');
       if (!b || !t || !S.drawer) return;
       const i = +t.dataset.i, imgs = S.drawer.imgs;
@@ -645,7 +792,24 @@ settings             tc (tipo de cambio ARS/USD)
       else if (b.dataset.act === 'cover') imgs.unshift(imgs.splice(i, 1)[0]);
       renderThumbs();
     });
+    // gastos: actualiza el estado y el total sin re-renderizar (no pierde el foco al escribir)
+    $('#drBody').addEventListener('input', e => {
+      const row = e.target.closest('.grow'); if (!row || !S.drawer) return;
+      const g = S.drawer.gastos[+row.dataset.i], k = e.target.dataset.k; if (!g || !k) return;
+      g[k] = k === 'valor' ? e.target.value : e.target.value;
+      const t = $('#gTotal'); if (t) t.innerHTML = gastosTotalHTML();
+      updateProfit();
+    });
+    $('#docFileInput').addEventListener('change', async e => {
+      const f = e.target.files[0], k = e.target.dataset.k; e.target.value = '';
+      if (f && k) await attachFile(k, f);
+    });
     $('#drBody').addEventListener('change', async e => {
+      if (e.target.matches('.grow select') && S.drawer) {
+        S.drawer.gastos[+e.target.closest('.grow').dataset.i].moneda = e.target.value;
+        const t = $('#gTotal'); if (t) t.innerHTML = gastosTotalHTML();
+        updateProfit(); return;
+      }
       if (e.target.id !== 'fotoFile') return;
       const files = [...e.target.files]; e.target.value = '';
       await addFotos(files);
