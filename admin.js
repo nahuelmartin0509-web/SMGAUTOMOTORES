@@ -20,7 +20,7 @@
   const DOC_LABEL = Object.fromEntries(DOCS);
   const PAGAN = { agencia: 'Agencia', cliente: 'Cliente', titular: 'Titular (consignante)' };
   const CATEGORIAS = { sedan: 'Sedán', hatchback: 'Hatchback', suv: 'SUV', pickup: 'Pick-up / 4x4', utilitario: 'Utilitarios' };
-  const VIEW_TITLES = { inventory: 'Inventario y Ficha 360°', ops: 'Operaciones, Señas y Permutas', debts: 'Deudas y Cuentas Corrientes', data: 'Datos / Firebase' };
+  const VIEW_TITLES = { inventory: 'Inventario y Ficha 360°', ops: 'Registrar operación', debts: 'Deudas y Cuentas Corrientes', data: 'Datos / Firebase' };
 
   const S = { user: null, vehicles: [], reservations: [], receivables: [], settings: { tc: 1400 }, view: 'inventory', debtTab: 'cobrar', drawer: null, modalSubmit: null };
   const isAdmin = () => !!S.user && S.user.role === 'admin';
@@ -179,7 +179,7 @@
     const pat = v.deudaPatentes || { monto: 0, paga: 'agencia' }, mul = v.deudaMultas || { monto: 0, paga: 'agencia' };
     return `
     <div class="pane is-active" data-pane="tec">
-      ${activeRes ? `<div class="alert-res">Reservado por <b>${esc(activeRes.cliente)}</b> · vence ${fmtDate(activeRes.vencimiento)}.</div>` : ''}
+      ${activeRes ? `<div class="alert-res">${tipoOf(activeRes) === 'operacion' ? 'Operación en curso' : (tipoOf(activeRes) === 'reserva' ? 'Reservado' : 'Señado')} por <b>${esc(activeRes.cliente)}</b> · ${activeRes.vencimiento ? 'vence / entrega ' + fmtDate(activeRes.vencimiento) : 'activa'}.</div>` : ''}
       <div class="sub">Identificación</div>
       <div class="row2">${fld('Dominio (Patente)', 'dominio', v.dominio, 'text', 'style="text-transform:uppercase" placeholder="AB 123 CD"')}${fld('Marca', 'marca', v.marca, 'text', 'required')}</div>
       <div class="row2">${fld('Modelo', 'modelo', v.modelo, 'text', 'required')}${fld('Versión', 'version', v.version)}</div>
@@ -440,7 +440,7 @@
     closeDrawer(); toast('Vehículo eliminado.');
   }
 
-  /* ===== VISTA 2: OPERACIONES ===== */
+    /* ===== VISTA 2: REGISTRAR OPERACIÓN ===== */
   function payResume(r) {
     const p = r.pago || {}, out = [];
     if (p.efectivo && num(p.efectivo.monto)) out.push('Efvo ' + cash(p.efectivo.monto, p.efectivo.mon));
@@ -448,20 +448,36 @@
     if (p.financiacion && num(p.financiacion.monto)) out.push('Financ ' + cash(p.financiacion.monto, p.financiacion.mon));
     return out.length ? out.map(x => `<span class="t2" style="color:var(--ink)">${x}</span>`).join('') : '—';
   }
+
+  /* Tipos de registro dentro de "Registrar operación". Los registros anteriores no tienen `tipo`: eran todos señas. */
+  const TIPOS = { sena: 'Seña', reserva: 'Reserva', operacion: 'Operación' };
+  const TIPO_BADGE = { sena: 'b--amber', reserva: '', operacion: 'b--ok' };
+  const tipoOf = r => (r && r.tipo && TIPOS[r.tipo]) ? r.tipo : 'sena';
+  const ALL_RES = Object.assign({}, RES_ESTADOS, { reservada: 'Reservada' });
+  const estadosFor = t => t === 'reserva'
+    ? { reservada: 'Reservada', listo_entrega: RES_ESTADOS.listo_entrega }
+    : RES_ESTADOS;
   function renderOps() {
-    const f = $('#opsFilter').value;
-    const list = S.reservations.filter(r => f === 'todas' || (f === 'entregadas' ? r.estado === 'entregado' : r.estado !== 'entregado'))
+    const f = $('#opsFilter').value, t = $('#opsTipo').value;
+    const list = S.reservations
+      .filter(r => (f === 'todas' || (f === 'entregadas' ? r.estado === 'entregado' : r.estado !== 'entregado')) && (!t || tipoOf(r) === t))
       .sort((a, b) => (a.vencimiento || '').localeCompare(b.vencimiento || ''));
+    Object.keys(TIPOS).forEach(k => {
+      const el = $('#cnt-' + k);
+      if (el) { const n = S.reservations.filter(r => tipoOf(r) === k && r.estado !== 'entregado').length; el.textContent = n + (n === 1 ? ' activa' : ' activas'); }
+    });
     $('#opsBody').innerHTML = list.map(r => {
-      const v = vById(r.vehicleId), done = r.estado === 'entregado';
+      const v = vById(r.vehicleId), done = r.estado === 'entregado', tp = tipoOf(r);
+      const est = Object.assign({}, estadosFor(tp)); if (!est[r.estado] && !done) est[r.estado] = ALL_RES[r.estado] || r.estado;
       return `<tr class="${done ? 'muted' : ''}" data-id="${r.id}">
+        <td><span class="b ${TIPO_BADGE[tp]}">${TIPOS[tp]}</span></td>
         <td>${v ? `<a class="t1 link" data-open="${v.id}">${esc(label(v))}</a><span class="t2">${esc(v.dominio)}</span>` : '<span class="t2">Vehículo eliminado</span>'}</td>
         <td><span class="t1">${esc(r.cliente)}</span><span class="t2">${esc(r.telefono)}</span></td>
         <td>${esc(r.vendedor)}</td>
         <td class="num">${moneyPair(r.montoARS, r.montoUSD)}</td>
         <td>${dueBadge(r.vencimiento, !done)}</td>
         <td>${done ? '<span class="b b--vendido">Entregado</span>' :
-          `<select class="inl" data-act="estado">${opts(RES_ESTADOS, r.estado)}</select>`}</td>
+          `<select class="inl" data-act="estado">${opts(est, r.estado)}</select>`}</td>
         <td>${r.permuta && r.permuta.activa ? `<span class="b b--amber">${r.permuta.llaveXLlave ? 'Llave x llave' : 'Permuta'}</span><span class="t2">${esc(r.permuta.descripcion)}${num(r.permuta.valorUSD) ? ' · ' + usd(r.permuta.valorUSD) : ''}</span>` : '<span class="t2">—</span>'}</td>
         <td>${payResume(r)}</td>
         <td><div class="acts">
@@ -473,26 +489,43 @@
     $('#opsEmpty').hidden = list.length > 0;
   }
 
-  function blankRes() {
+  function blankRes(tipo) {
+    tipo = TIPOS[tipo] ? tipo : 'sena';
     return {
-      vehicleId: '', cliente: '', telefono: '', vendedor: S.user ? S.user.user : '', montoARS: 0, montoUSD: 0, vencimiento: addDays(7), estado: 'esperando_credito',
+      tipo, vehicleId: '', cliente: '', telefono: '', vendedor: S.user ? S.user.user : '', montoARS: 0, montoUSD: 0,
+      vencimiento: addDays(tipo === 'reserva' ? 3 : 7), estado: tipo === 'reserva' ? 'reservada' : 'esperando_credito', notas: '',
       permuta: { activa: false, llaveXLlave: false, descripcion: '', dominio: '', valorUSD: 0 },
       pago: { efectivo: { monto: 0, mon: 'USD' }, transferencia: { monto: 0, mon: 'USD' }, financiacion: { monto: 0, mon: 'USD', cuotas: 0, montoCuota: 0, primerVenc: '' } }
     };
   }
-  function openResModal(id) {
-    const base = id ? clone(S.reservations.find(r => r.id === id)) : blankRes();
+  /** Formulario único para los tres tipos: Seña (deja dinero), Reserva (aparta sin dinero) y Operación (venta completa). */
+  function openResModal(id, tipoNuevo) {
+    const base = id ? clone(S.reservations.find(r => r.id === id)) : blankRes(tipoNuevo);
+    const tipo = tipoOf(base);
     const locked = base.estado === 'entregado';
+    const T = {
+      sena: { veh: 'Vehículo señado', venc: 'Vencimiento de la seña', nuevo: 'Nueva seña' },
+      reserva: { veh: 'Vehículo reservado', venc: 'Vencimiento de la reserva', nuevo: 'Nueva reserva' },
+      operacion: { veh: 'Vehículo de la operación', venc: 'Fecha prevista de entrega', nuevo: 'Crear operación' }
+    }[tipo];
     const vopts = S.vehicles.filter(v => v.id === base.vehicleId || v.estado === 'disponible' || v.estado === 'taller')
       .map(v => `<option value="${v.id}" ${v.id === base.vehicleId ? 'selected' : ''}>${esc(label(v))} · ${esc(v.dominio)} (${ESTADOS[v.estado]})</option>`).join('');
+    const est = Object.assign({}, estadosFor(tipo));
+    if (!est[base.estado] && !locked) est[base.estado] = ALL_RES[base.estado] || base.estado;
+    const estVal = locked ? Object.keys(est)[0] : base.estado;
+    const withMoney = tipo !== 'reserva', withPay = tipo !== 'reserva';
     const p = base.pago, pm = base.permuta;
+    const moneyLbl = tipo === 'operacion' ? 'Seña / anticipo' : 'Seña';
     const body = `
-      <div class="sub">Seña / reserva</div>
-      <label class="f"><span>Vehículo señado</span><select name="vehicleId" required><option value="">Seleccionar…</option>${vopts}</select></label>
+      <div class="sub">${TIPOS[tipo]}</div>
+      <label class="f"><span>${T.veh}</span><select name="vehicleId" required><option value="">Seleccionar…</option>${vopts}</select></label>
       <div class="row2">${fld('Cliente', 'cliente', base.cliente, 'text', 'required')}${fld('Teléfono', 'telefono', base.telefono, 'tel')}</div>
-      <div class="row3">${fld('Vendedor asignado', 'vendedor', base.vendedor)}${fld('Seña · USD', 'montoUSD', base.montoUSD, 'number')}${fld('Seña · ARS', 'montoARS', base.montoARS, 'number')}</div>
-      <div class="row2">${fld('Vencimiento de la reserva', 'vencimiento', base.vencimiento, 'date')}${sel('Estado', 'estado', RES_ESTADOS, base.estado === 'entregado' ? 'listo_entrega' : base.estado)}</div>
-
+      ${withMoney
+        ? `<div class="row3">${fld('Vendedor asignado', 'vendedor', base.vendedor)}${fld(moneyLbl + ' · USD', 'montoUSD', base.montoUSD, 'number')}${fld(moneyLbl + ' · ARS', 'montoARS', base.montoARS, 'number')}</div>`
+        : fld('Vendedor asignado', 'vendedor', base.vendedor)}
+      <div class="row2">${fld(T.venc, 'vencimiento', base.vencimiento, 'date')}${sel('Estado', 'estado', est, estVal)}</div>
+      <label class="f"><span>Notas</span><textarea name="notas" placeholder="${tipo === 'reserva' ? 'Ej: el cliente confirma el viernes' : 'Observaciones de la operación'}">${esc(base.notas || '')}</textarea></label>
+      ${withPay ? `
       <div class="sub" style="margin-top:.6rem">Permuta</div>
       ${chk('Entra un auto en permuta', 'permuta.activa', pm.activa)}
       <div id="permBox" ${pm.activa ? '' : 'hidden'}>
@@ -506,12 +539,18 @@
         <div class="f"><span>Transferencia</span><div class="cur"><input type="number" step="any" min="0" name="pago.transferencia.monto" value="${p.transferencia.monto}">${monSel('pago.transferencia.mon', p.transferencia.mon)}</div></div>
         <div class="f"><span>Financiación / Pagarés</span><div class="cur"><input type="number" step="any" min="0" name="pago.financiacion.monto" value="${p.financiacion.monto}">${monSel('pago.financiacion.mon', p.financiacion.mon)}</div></div>
       </div>
-      <div class="row3">${fld('Cantidad de cuotas', 'pago.financiacion.cuotas', p.financiacion.cuotas, 'number')}${fld('Monto de cuota', 'pago.financiacion.montoCuota', p.financiacion.montoCuota, 'number')}${fld('1er vencimiento', 'pago.financiacion.primerVenc', p.financiacion.primerVenc, 'date')}</div>
-      <p class="note">Al marcar la operación como <b>Entregada</b>, si hay financiación se crea automáticamente la cuenta corriente en Deudas por Cobrar.</p>`;
-    openModal(id ? (locked ? 'Operación entregada' : 'Editar seña') : 'Registrar seña', body, async form => {
+      <div class="row3">${fld('Cantidad de cuotas', 'pago.financiacion.cuotas', p.financiacion.cuotas, 'number')}${fld('Monto de cuota', 'pago.financiacion.montoCuota', p.financiacion.montoCuota, 'number')}${fld('1er vencimiento', 'pago.financiacion.primerVenc', p.financiacion.primerVenc, 'date')}</div>` : ''}
+      ${tipo === 'operacion' && !locked ? chk('Vehículo entregado en el acto (venta directa): el auto pasa a Vendido', '_entregarYa', false) : ''}
+      <p class="note">${tipo === 'reserva' ? 'La reserva aparta la unidad sin dinero: el auto pasa a Señado / Reservado hasta que venza, se cancele o se convierta en operación.'
+        : 'Al marcar la operación como <b>Entregada</b>, si hay financiación se crea automáticamente la cuenta corriente en Deudas por Cobrar.'}</p>`;
+    const title = id ? (locked ? `${TIPOS[tipo]} entregada` : `Editar ${TIPOS[tipo].toLowerCase()}`) : T.nuevo;
+    openModal(title, body, async form => {
       const out = collect(form, base);
+      const entregarYa = !!out._entregarYa; delete out._entregarYa;
+      out.tipo = tipo;
       if (locked) out.estado = 'entregado';
       if (!out.vehicleId) { toast('Seleccioná un vehículo.'); return false; }
+      if (tipo === 'sena' && !num(out.montoUSD) && !num(out.montoARS)) { toast('Una seña necesita un monto (USD o ARS). Si no hay dinero, usá Reserva.'); return false; }
       const veh = vById(out.vehicleId);
       const saved = await Db.save('reservations', out);
       // Libera el auto anterior si cambió
@@ -519,16 +558,21 @@
         const old = vById(base.vehicleId);
         if (old && old.estado === 'senado') { old.estado = 'disponible'; await Db.save('vehicles', old); }
       }
-      // Seña => el auto pasa automáticamente a "Señado"
+      // Seña, reserva u operación en curso => el auto pasa automáticamente a "Señado / Reservado"
       if (veh && !locked && veh.estado !== 'senado') { veh.estado = 'senado'; await Db.save('vehicles', veh); }
-      toast(id ? 'Operación actualizada.' : 'Seña registrada. El auto quedó como Señado.', true);
+      if (entregarYa && !locked) { await finalizeDelivery(saved); return saved; }
+      toast(id ? `${TIPOS[tipo]} actualizada.` : {
+        sena: 'Seña registrada. El auto quedó como Señado.',
+        reserva: 'Reserva registrada. El auto quedó como Señado / Reservado.',
+        operacion: 'Operación creada. El auto queda reservado hasta la entrega.'
+      }[tipo], true);
       return saved;
-    }, locked ? 'Guardar' : 'Guardar');
+    });
   }
-  async function deliverRes(id) {
-    const r = S.reservations.find(x => x.id === id); if (!r) return;
+
+  /** Pasa la operación a "Entregado", el auto a "Vendido" y, si hay financiación, crea la cuenta corriente. */
+  async function finalizeDelivery(r) {
     const v = vById(r.vehicleId);
-    if (!confirm(`¿Marcar como entregado${v ? ' el ' + label(v) : ''} a ${r.cliente}?`)) return;
     r.estado = 'entregado';
     await Db.save('reservations', r);
     if (v) { v.estado = 'vendido'; v.fechaVenta = isoDate(new Date()); await Db.save('vehicles', v); }
@@ -544,13 +588,19 @@
       toast('Entregado. Se creó la cuenta corriente del cliente.', true);
     } else toast('Vehículo entregado.', true);
   }
+  async function deliverRes(id) {
+    const r = S.reservations.find(x => x.id === id); if (!r) return;
+    const v = vById(r.vehicleId);
+    if (!confirm(`¿Marcar como entregado${v ? ' el ' + label(v) : ''} a ${r.cliente}?`)) return;
+    await finalizeDelivery(r);
+  }
   async function cancelRes(id) {
     const r = S.reservations.find(x => x.id === id); if (!r) return;
-    if (!confirm(`¿Cancelar la seña de ${r.cliente}? El auto vuelve a Disponible.`)) return;
+    if (!confirm(`¿Cancelar la ${TIPOS[tipoOf(r)].toLowerCase()} de ${r.cliente}? El auto vuelve a Disponible.`)) return;
     await Db.remove('reservations', id);
     const v = vById(r.vehicleId);
     if (v && v.estado === 'senado') { v.estado = 'disponible'; await Db.save('vehicles', v); }
-    toast('Reserva cancelada.');
+    toast(`${TIPOS[tipoOf(r)]} cancelada.`);
   }
 
   /* ===== VISTA 3: DEUDAS ===== */
@@ -817,7 +867,8 @@ settings             tc (tipo de cambio ARS/USD)
 
     // operaciones
     $('#opsFilter').addEventListener('change', renderOps);
-    $('#newResBtn').addEventListener('click', () => openResModal(null));
+    $('#opsTipo').addEventListener('change', renderOps);
+    $$('[data-new-op]').forEach(btn => btn.addEventListener('click', () => openResModal(null, btn.dataset.newOp)));
     $('#opsBody').addEventListener('click', e => {
       const open = e.target.closest('[data-open]'); if (open) { openDrawer(open.dataset.open); return; }
       const b = e.target.closest('[data-act]'); if (!b || b.tagName === 'SELECT') return;
